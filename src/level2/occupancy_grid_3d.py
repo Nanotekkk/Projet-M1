@@ -1,4 +1,8 @@
-"""3D Occupancy Grid for Navigation - Level 2"""
+"""3D Occupancy Grid for Navigation - Level 2
+
+Author: Matheo LANCEA
+Description: Spatial grid representation for obstacle avoidance
+"""
 
 import numpy as np
 from typing import Tuple, Optional

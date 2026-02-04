@@ -1,4 +1,8 @@
-"""RANSAC Segmentation for Ground Detection - Level 1"""
+"""RANSAC Segmentation for Ground Detection - Level 1
+
+Author: Matheo LANCEA
+Description: RANSAC algorithm for robust ground plane detection in point clouds
+"""
 
 import numpy as np
 from typing import Tuple

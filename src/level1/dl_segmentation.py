@@ -1,4 +1,8 @@
-"""Deep Learning Segmentation for Ground Detection - Level 1"""
+"""Deep Learning Segmentation for Ground Detection - Level 1
+
+Author: Matheo LANCEA
+Description: Neural network-based classification for ground point detection
+"""
 
 import numpy as np
 from sklearn.neural_network import MLPClassifier

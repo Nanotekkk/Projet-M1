@@ -1,4 +1,8 @@
-"""A* Pathfinding Algorithm - Level 2"""
+"""A* Pathfinding Algorithm - Level 2
+
+Author: Matheo LANCEA
+Description: Optimal path finding algorithm for VR navigation
+"""
 
 import numpy as np
 import heapq

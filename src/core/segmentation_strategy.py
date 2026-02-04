@@ -1,4 +1,8 @@
-"""Segmentation Strategy - Strategy Pattern"""
+"""Segmentation Strategy - Strategy Pattern
+
+Author: Matheo LANCEA
+Description: Abstract base classes for ground detection strategies
+"""
 
 from abc import ABC, abstractmethod
 import numpy as np

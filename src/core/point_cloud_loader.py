@@ -1,4 +1,8 @@
-"""Point Cloud Loader - Factory Pattern"""
+"""Point Cloud Loader - Factory Pattern
+
+Author: Matheo LANCEA
+Description: Factory pattern implementation for creating and loading 3D point clouds
+"""
 
 import numpy as np
 from typing import Union, Tuple, Optional

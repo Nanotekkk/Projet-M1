@@ -1,4 +1,8 @@
-"""Plane Detection for Surface Identification - Level 2"""
+"""Plane Detection for Surface Identification - Level 2
+
+Author: Matheo LANCEA
+Description: RANSAC-based detection of planar surfaces in point clouds
+"""
 
 import numpy as np
 from typing import List, Tuple, Optional

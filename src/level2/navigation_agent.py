@@ -1,4 +1,8 @@
-"""Navigation Agent - Level 2"""
+"""Navigation Agent - Level 2
+
+Author: Matheo LANCEA
+Description: Intelligent agent managing VR navigation with observer pattern
+"""
 
 import numpy as np
 from typing import List, Optional

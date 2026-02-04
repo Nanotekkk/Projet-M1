@@ -1,4 +1,8 @@
-"""Observer Pattern for event-driven architecture"""
+"""Observer Pattern for event-driven architecture
+
+Author: Matheo LANCEA
+Description: Implementation of the Observer design pattern for navigation events
+"""
 
 from abc import ABC, abstractmethod
 from typing import List, Any

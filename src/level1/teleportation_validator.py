@@ -1,4 +1,8 @@
-"""Teleportation Validator - Level 1"""
+"""Teleportation Validator - Level 1
+
+Author: Matheo LANCEA
+Description: Validates safe teleportation positions in VR navigation
+"""
 
 import numpy as np
 from typing import Tuple, Optional

@@ -1,4 +1,8 @@
-"""Euclidean Clustering for Point Cloud Segmentation - Level 2"""
+"""Euclidean Clustering for Point Cloud Segmentation - Level 2
+
+Author: Matheo LANCEA
+Description: DBSCAN-based clustering for multi-element segmentation
+"""
 
 import numpy as np
 from typing import List, Tuple
