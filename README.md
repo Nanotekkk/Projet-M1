@@ -3,7 +3,7 @@
 **Author:** Matheo LANCEA  
 **Project:** M1 University Project
 
-A comprehensive Python implementation of an intelligent navigation system for 3D point cloud environments in Virtual Reality. This project includes both fundamental and advanced techniques for ground detection, obstacle avoidance, and pathfinding with full test coverage and design pattern implementation.
+A comprehensive Python implementation of an intelligent navigation system for 3D point cloud environments in Virtual Reality. This project includes both fundamental and advanced techniques for ground detection, obstacle avoidance, and pathfinding with full test coverage.
 
 ## 🎯 Project Objectives
 

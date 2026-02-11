@@ -1,0 +1,25 @@
+Metadata-Version: 2.4
+Name: lidar-vr-navigation
+Version: 1.0.0
+Summary: Intelligent navigation system for 3D point clouds in VR environments
+Author: Matheo LANCEA
+Author-email: matheo.lancea@university.edu
+Requires-Python: >=3.8
+Requires-Dist: numpy>=1.21.0
+Requires-Dist: open3d>=0.14.0
+Requires-Dist: scikit-learn>=1.0.0
+Requires-Dist: scipy>=1.7.0
+Requires-Dist: tensorflow>=2.8.0
+Requires-Dist: torch>=1.10.0
+Requires-Dist: torchvision>=0.11.0
+Requires-Dist: matplotlib>=3.4.0
+Requires-Dist: pydantic>=1.8.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0.0; extra == "dev"
+Requires-Dist: pytest-cov>=3.0.0; extra == "dev"
+Dynamic: author
+Dynamic: author-email
+Dynamic: provides-extra
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary

@@ -5,7 +5,7 @@ setup(
     version="1.0.0",
     description="Intelligent navigation system for 3D point clouds in VR environments",
     author="Matheo LANCEA",
-    author_email="matheo.lancea@university.edu",
+    author_email="matheo.lancea@lacatholille.fr",
     package_dir={"": "src"},
     packages=find_packages(where="src"),
     python_requires=">=3.8",

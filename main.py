@@ -275,7 +275,7 @@ def demo_level2_navigation_agent():
 def main():
     """Run all demonstrations"""
     print("\n" + "=" * 60)
-    print("LiDAR VR Navigation System - Complete Demonstration")
+    print("LiDAR VR Navigation System Demonstration")
     print("=" * 60)
 
     try:
@@ -300,7 +300,7 @@ def main():
         demo_level2_navigation_agent()
 
         print("\n" + "=" * 60)
-        print("[✓] All demonstrations completed successfully!")
+        print("[✓] All demonstrations completed successfully")
         print("=" * 60 + "\n")
 
     except Exception as e:
