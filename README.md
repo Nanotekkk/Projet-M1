@@ -1,38 +1,32 @@
-# LiDAR VR Navigation System
+# LiDAR RANSAC Plane Detection
 
 **Author:** Matheo LANCEA  
 **Project:** M1 University Project
 
-A comprehensive Python implementation of an intelligent navigation system for 3D point cloud environments in Virtual Reality. This project includes both fundamental and advanced techniques for ground detection, obstacle avoidance, and pathfinding with full test coverage.
+A comprehensive Python implementation focusing on **RANSAC-based multi-plane detection** with advanced visualization in Open3D and comparison with other plane fitting methods.
 
 ## 🎯 Project Objectives
 
-### Level 1 - Fundamentals
-- ✅ Load and process 3D point clouds
-- ✅ Detect ground planes using RANSAC algorithm
-- ✅ Classify ground points with Deep Learning
-- ✅ Validate VR teleportation positions
-- ✅ Provide visual feedback for valid landing zones
+### Core Features
+- ✅ **Multi-plane detection** using RANSAC algorithm
+- ✅ **Color-coded plane visualization** in Open3D
+- ✅ **Method comparison**: RANSAC vs Linear Regression, K-Means
+- ✅ **Synthetic scene generation** for testing
+- ✅ **Performance metrics** and computation time analysis
+- ✅ **Realistic indoor scene** detection (floor, walls, ceiling)
 
-### Level 2 - Advanced Navigation
-- ✅ Segment environments into multiple elements (ground, walls, obstacles)
-- ✅ Build 3D occupancy grids for navigation
-- ✅ Implement A* pathfinding algorithm
-- ✅ Create intelligent navigation agents
-- ✅ Event-driven guidance system with waypoints
-- ✅ Dynamic path recalculation on deviation
-
-## 📁 Quick Start
+## 🚀 Quick Start
 
 ### Installation
 
 ```bash
-# Clone/navigate to project
-cd lidar_vr_navigation
+# Navigate to project
+cd Projet-M1
 
 # Create virtual environment (optional but recommended)
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# On Windows: venv\Scripts\activate
+# On Linux/Mac: source venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
@@ -44,59 +38,211 @@ pip install -e .
 ### Run Demonstrations
 
 ```bash
-# Run all demonstrations
+# Run complete demonstration with all 4 demos
 python main.py
 
-# Run specific tests
-pytest tests/unit/test_level1_segmentation.py -v
-pytest tests/unit/test_level2_navigation.py -v
+# Demos include:
+# 1. RANSAC Multi-Plane Detection (3 planes)
+# 2. Method Comparison (6 different approaches)
+# 3. Visualization Comparison (view each method's results)
+# 4. Realistic Indoor Scene (floor + walls + ceiling)
+```
 
-# Run all tests with coverage
+## 📊 Detection Methods & Comparison
+
+The system compares 6 different plane detection methods:
+
+| Method | Strengths | Weaknesses | Speed |
+|--------|-----------|-----------|-------|
+| **RANSAC** | Robust to outliers, finds all planes | Requires tuning, iterative | Medium |
+| **Linear Regression** | Fast, simple implementation | Assumes z=f(x,y), biased | Fast |
+| **K-Means** | Unsupervised clustering, global | Number of clusters must be known | Fast |
+| **GMM** | Probabilistic, handles uncertainty | Requires EM iterations | Slow |
+| **PCA** | Finds plane normal via variance | Single dominant plane only | Very Fast |
+| **Height-Based** | Simple heuristic baseline | Very simple, limited accuracy | Instant |
+
+## 🎨 Plane Visualization
+
+Each detected plane is assigned a unique color for easy identification:
+- **Red**: Plane 0
+- **Green**: Plane 1
+- **Blue**: Plane 2
+- **Yellow**: Plane 3
+- **Magenta**: Plane 4
+- **Cyan**: Plane 5
+- **Orange** / **Purple** / **Pink**: Additional planes
+
+Unassigned points are shown in light gray.
+
+### Using the Visualizer
+
+```python
+from src.plane_detection.ransac_detector import RANSACPlaneDetector
+from src.visualization.open3d_visualizer import Open3DVisualizer
+import numpy as np
+
+# Load or create point cloud
+points = np.random.randn(10000, 3)
+
+# Detect planes
+detector = RANSACPlaneDetector(distance_threshold=0.1, max_planes=5)
+planes = detector.detect_planes(points)
+
+# Visualize
+visualizer = Open3DVisualizer("My Point Cloud")
+visualizer.visualize_point_cloud_with_planes(points, planes)
+```
+
+## 🔬 Model Comparison
+
+```python
+from src.plane_detection.model_comparison import ModelComparison
+import numpy as np
+
+# Create point cloud
+points = np.random.randn(10000, 3)
+
+# Compare all methods
+comparator = ModelComparison()
+results = comparator.compare_all_methods(points)
+
+# Print results
+comparator.print_comparison(results)
+
+# Access detailed metrics
+for method_name, result in results.items():
+    print(f"{method_name}:")
+    print(f"  - Inliers: {result.inlier_count}")
+    print(f"  - Ratio: {result.inlier_ratio:.3f}")
+    print(f"  - Time: {result.computation_time*1000:.2f} ms")
+```
+
+## 📁 Project Structure
+
+```
+src/
+├── plane_detection/
+│   ├── ransac_detector.py       # RANSAC multi-plane detector
+│   ├── model_comparison.py       # Comparison of 6 detection methods
+│   └── __init__.py
+│
+├── visualization/
+│   ├── open3d_visualizer.py     # Open3D visualization with colored planes
+│   └── __init__.py
+```
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+pytest
+
+# Run specific test file
+pytest tests/unit/test_ransac.py -v
+
+# Run with coverage
 pytest --cov=src tests/
 ```
 
-## 🏗️ Architecture
+## 📝 Example: Multi-Plane Indoor Scene
 
-### Core Components
+```python
+import numpy as np
+from src.plane_detection.ransac_detector import RANSACPlaneDetector
+from src.visualization.open3d_visualizer import Open3DVisualizer
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                  Point Cloud Input                       │
-└─────────────────────────────────────────────────────────┘
-                          │
-        ┌─────────────────┼─────────────────┐
-        │                 │                 │
-    ┌───▼───┐        ┌───▼────┐       ┌───▼────┐
-    │ RANSAC│        │   DL   │       │Clustering
-    │  Seg. │        │   Seg. │       │ DBSCAN │
-    └───────┘        └────────┘       └────────┘
-        │                 │                 │
-        └─────────────────┼─────────────────┘
-                          │
-            ┌─────────────▼──────────────┐
-            │  Plane Detection & Seg.    │
-            └────────────┬───────────────┘
-                         │
-            ┌────────────▼──────────────┐
-            │  3D Occupancy Grid       │
-            └────────────┬──────────────┘
-                         │
-            ┌────────────▼──────────────┐
-            │  A* Pathfinding          │
-            └────────────┬──────────────┘
-                         │
-            ┌────────────▼──────────────┐
-            │  Navigation Agent        │
-            │  (Observer Pattern)      │
-            └──────────────────────────┘
-                         │
-            ┌────────────▼──────────────┐
-            │  VR Visualization        │
-            │  Haptic Feedback         │
-            └──────────────────────────┘
+# Create floor, walls, ceiling
+floor = np.random.uniform(-10, 10, (5000, 3))
+floor[:, 2] = 0  # z=0
+
+wall = np.ones((2000, 3)) * 10
+wall[:, 1] = np.random.uniform(-10, 10, 2000)
+wall[:, 2] = np.random.uniform(0, 3, 2000)
+
+ceiling = np.random.uniform(-10, 10, (2000, 3))
+ceiling[:, 2] = 3  # z=3
+
+scene = np.vstack([floor, wall, ceiling])
+
+# Detect planes
+detector = RANSACPlaneDetector(max_planes=6)
+planes = detector.detect_planes(scene)
+
+# Visualize
+viz = Open3DVisualizer("Indoor Scene")
+viz.visualize_point_cloud_with_planes(scene, planes)
+
+# Print results
+for plane in planes:
+    print(f"Plane {plane.plane_id}: {plane.inlier_count} points - Color: {plane.color}")
 ```
 
-### Design Patterns Used
+## 🔧 Configuration
+
+### RANSAC Parameters
+
+```python
+detector = RANSACPlaneDetector(
+    distance_threshold=0.1,      # Max distance to plane (inlier threshold)
+    iterations=1000,             # RANSAC iterations
+    min_points_per_plane=10,     # Minimum inliers to define a plane
+    max_planes=10,               # Maximum planes to detect
+    inlier_ratio_threshold=0.05  # Min ratio of inliers (5%)
+)
+```
+
+## 📈 Performance Metrics
+
+Each method returns:
+- **Inlier Count**: Number of points belonging to detected plane
+- **Inlier Ratio**: Percentage of points in plane (0-1)
+- **Plane Normal**: Unit normal vector (a, b, c)
+- **Plane Distance**: Distance from origin (d in ax+by+cz+d=0)
+- **Computation Time**: Execution time in seconds
+- **Additional Metrics**: Method-specific information
+
+## 💡 Tips & Best Practices
+
+1. **Adjust distance_threshold** based on your sensor noise
+2. **Use visualization** to validate detected planes before processing
+3. **Compare methods** to choose best approach for your data
+4. **Test on synthetic data** first, then real data
+5. **Tune max_planes** conservatively to avoid over-segmentation
+6. **Check inlier_ratio** to ensure planes are meaningful (>5%)
+
+## 🛠️ Troubleshooting
+
+**Open3D visualization not showing?**
+- Ensure Open3D is installed: `pip install open3d`
+- Check system supports GUI (not over SSH)
+
+**Planes not detected?**
+- Increase iterations or decrease distance_threshold
+- Check point cloud quality and density
+
+**Slow performance?**
+- Reduce number of points (downsample)
+- Decrease iterations
+- Use Linear Regression for faster results
+
+## 📖 References
+
+- **RANSAC**: Fischler & Bolles (1981)
+- **Open3D**: Zhou et al., "Open3D: A Modern Library for 3D Data Processing"
+- **SVD Plane Fitting**: Linear algebra fundamentals
+
+## 📄 License
+
+Educational project - Free to use
+
+## 👨‍💻 Author
+
+**Matheo LANCEA** - M1 University Project
+
+---
+
+**Updated:** 2026-02-17  
+**Status:** Active Development
 
 | Pattern | Location | Purpose |
 |---------|----------|---------|

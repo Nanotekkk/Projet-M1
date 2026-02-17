@@ -1,4 +1,10 @@
-"""Main demonstration script for LiDAR VR Navigation System"""
+﻿"""Main Demonstration Script - RANSAC Plane Detection
+
+Demonstrates:
+1. Multi-plane detection with RANSAC
+2. Comparison with other methods (Linear Regression, K-Means)
+3. Visualization in Open3D with colored planes
+"""
 
 import numpy as np
 import sys
@@ -7,306 +13,255 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent))
 
+from src.plane_detection.ransac_detector import RANSACPlaneDetector
+from src.plane_detection.model_comparison import ModelComparison
+from src.visualization.open3d_visualizer import Open3DVisualizer, create_synthetic_scene
 from src.core.point_cloud_loader import PointCloudLoader
-from src.level1.ransac_segmentation import RANSACSegmentation
-from src.level1.dl_segmentation import DLSegmentation
-from src.level1.teleportation_validator import TeleportationValidator
-from src.level2.euclidean_clustering import EuclideanClustering
-from src.level2.plane_detection import PlaneDetection
-from src.level2.occupancy_grid_3d import OccupancyGrid3D
-from src.level2.pathfinding_a_star import AStarPathfinder
-from src.level2.navigation_agent import NavigationAgent
-from src.core.observer import Observer
 
 
-class ConsoleObserver(Observer):
-    """Observer for printing navigation events"""
-
-    def update(self, event_type: str, data=None):
-        print(f"[EVENT] {event_type}: {data}")
-
-
-def demo_level1_ransac():
-    """Demonstrate Level 1 RANSAC ground detection"""
-    print("\n" + "=" * 60)
-    print("LEVEL 1 - RANSAC Ground Detection")
-    print("=" * 60)
-
-    # Load synthetic point cloud
-    print("\n1. Loading synthetic scene...")
-    scene = PointCloudLoader.create_synthetic_scene(num_ground=5000, num_obstacles=2000)
-    print(f"   Loaded {len(scene)} points")
-
-    # Perform RANSAC segmentation
-    print("\n2. Performing RANSAC ground detection...")
-    ransac = RANSACSegmentation(distance_threshold=0.5, iterations=200)
-    result = ransac.segment(scene.points)
-
-    print(f"   Ground points detected: {len(result.ground_indices)}")
-    print(f"   Non-ground points: {len(scene.points) - len(result.ground_indices)}")
-    print(f"   Detection rate: {len(result.ground_indices) / len(scene.points) * 100:.1f}%")
-
-    if result.metadata["plane_normal"] is not None:
-        print(f"   Plane normal: {result.metadata['plane_normal']}")
-        print(f"   Plane distance: {result.metadata['plane_distance']:.3f}")
-
-    return scene, result
+def load_ply_file():
+    """Load a PLY file from disk"""
+    print("\n" + "="*80)
+    print("LOAD PLY FILE")
+    print("="*80)
+    
+    file_path = input("\nEnter the path to the PLY file: ").strip()
+    
+    if not file_path:
+        print("   No file specified. Using synthetic data instead.")
+        return None
+    
+    try:
+        filepath = Path(file_path)
+        if not filepath.exists():
+            print(f"   Error: File not found: {file_path}")
+            return None
+        
+        print(f"\n   Loading PLY file: {filepath.name}...")
+        point_cloud = PointCloudLoader.load_from_file(filepath)
+        points = point_cloud.points
+        print(f"   Successfully loaded {len(points)} points")
+        if point_cloud.colors is not None:
+            print(f"   Point cloud includes color information")
+        return points
+    except Exception as e:
+        print(f"   Error loading file: {e}")
+        return None
 
 
-def demo_level1_dl():
-    """Demonstrate Level 1 Deep Learning segmentation"""
-    print("\n" + "=" * 60)
-    print("LEVEL 1 - Deep Learning Ground Detection")
-    print("=" * 60)
-
-    # Load synthetic point cloud
-    print("\n1. Loading synthetic scene...")
-    scene = PointCloudLoader.create_synthetic_scene()
-    print(f"   Loaded {len(scene)} points")
-
-    # Create and train DL model
-    print("\n2. Training Deep Learning model...")
-    dl = DLSegmentation(confidence_threshold=0.5)
-
-    # Create synthetic labels (ground points are first 60%)
-    labels = np.zeros(len(scene.points), dtype=int)
-    labels[: int(0.6 * len(scene.points))] = 1
-
-    dl.train_model(scene.points, labels, epochs=5)
-    print("   Training complete")
-
-    # Perform segmentation
-    print("\n3. Performing segmentation...")
-    result = dl.segment(scene.points)
-
-    print(f"   Ground points detected: {len(result.ground_indices)}")
-    print(f"   Detection rate: {len(result.ground_indices) / len(scene.points) * 100:.1f}%")
-
-    return scene, result
+def get_input_source():
+    """Ask user to choose between synthetic data or loading a PLY file"""
+    print("\n" + "="*80)
+    print("POINT CLOUD SOURCE SELECTION")
+    print("="*80)
+    print("\n1. Generate synthetic point cloud (with multiple planes)")
+    print("2. Load PLY file from disk")
+    
+    choice = input("\nSelect option (1 or 2): ").strip()
+    
+    if choice == "2":
+        points = load_ply_file()
+        if points is not None:
+            return points
+        else:
+            print("   Falling back to synthetic data...")
+            return create_synthetic_scene(num_points=10000, num_planes=3, noise_level=0.1)
+    else:
+        print("\n1. Creating synthetic point cloud with multiple planes...")
+        return create_synthetic_scene(num_points=10000, num_planes=3, noise_level=0.1)
 
 
-def demo_level1_teleportation(scene, segmentation_result):
-    """Demonstrate Level 1 VR teleportation validation"""
-    print("\n" + "=" * 60)
-    print("LEVEL 1 - VR Teleportation Validation")
-    print("=" * 60)
+def demo_ransac_multi_plane(points=None):
+    "Demonstrate RANSAC multi-plane detection"
+    print("\n" + "=" * 80)
+    print("DEMO 1: RANSAC MULTI-PLANE DETECTION")
+    print("=" * 80)
 
-    # Get ground points
-    ground_points = segmentation_result.get_ground_points(scene.points)
-    print(f"\n1. Using {len(ground_points)} ground points")
+    # Use provided points or create synthetic scene
+    if points is None:
+        print("\n1. Creating synthetic point cloud with multiple planes...")
+        points = create_synthetic_scene(num_points=10000, num_planes=3, noise_level=0.1)
+    else:
+        print("\n1. Using loaded point cloud...")
+    print(f"   Processing {len(points)} points")
 
-    # Create validator
-    print("\n2. Creating teleportation validator...")
-    validator = TeleportationValidator(
-        min_ground_points=5, max_height_above_ground=0.5
+    # Detect planes
+    print("\n2. Detecting planes with RANSAC...")
+    detector = RANSACPlaneDetector(
+        distance_threshold=0.15,
+        iterations=1000,
+        min_points_per_plane=50,
+        max_planes=5,
     )
 
-    # Test multiple positions
-    print("\n3. Validating teleportation positions...")
-    test_positions = np.array([
-        ground_points.mean(axis=0),
-        ground_points.mean(axis=0) + np.array([5, 0, 0]),
-        ground_points.mean(axis=0) + np.array([0, 5, 0]),
-        ground_points.mean(axis=0) + np.array([0, 0, 5]),  # Too high
-    ])
+    planes = detector.detect_planes(points)
+    print(f"   Found {len(planes)} planes")
 
-    results = validator.validate_multiple_positions(test_positions, ground_points)
+    # Print plane information
+    print("\n3. Plane Information:")
+    print("-" * 80)
+    for plane in planes:
+        print(f"\n   Plane {plane.plane_id}:")
+        print(f"     Normal: {plane.normal}")
+        print(f"     Distance: {plane.distance:.4f}")
+        print(f"     Inlier count: {plane.inlier_count} ({100*plane.inlier_count/len(points):.1f}%)")
+        print(f"     Color: RGB{plane.color}")
 
-    for i, result in enumerate(results):
-        print(
-            f"   Position {i}: {'VALID' if result.is_valid else 'INVALID'} - {result.reason}"
-        )
+    # Visualize
+    print("\n4. Launching Open3D visualization...")
+    visualizer = Open3DVisualizer("RANSAC Multi-Plane Detection")
+    visualizer.visualize_point_cloud_with_planes(points, planes)
 
-
-def demo_level2_clustering():
-    """Demonstrate Level 2 Euclidean clustering"""
-    print("\n" + "=" * 60)
-    print("LEVEL 2 - Euclidean Clustering")
-    print("=" * 60)
-
-    # Load scene
-    print("\n1. Loading synthetic scene...")
-    scene = PointCloudLoader.create_synthetic_scene()
-    print(f"   Loaded {len(scene)} points")
-
-    # Perform clustering
-    print("\n2. Performing euclidean clustering...")
-    clustering = EuclideanClustering(eps=5.0, min_points=10)
-    result = clustering.cluster(scene.points)
-
-    print(f"   Number of clusters: {result.n_clusters}")
-    print(f"   Cluster centers: {result.cluster_centers.shape}")
-
-    return scene, result
+    return points, planes
 
 
-def demo_level2_plane_detection(scene):
-    """Demonstrate Level 2 plane detection"""
-    print("\n" + "=" * 60)
-    print("LEVEL 2 - Plane Detection")
-    print("=" * 60)
+def demo_model_comparison(points: np.ndarray):
+    """Compare different plane detection methods"""
+    print("\n" + "=" * 80)
+    print("DEMO 2: MODEL COMPARISON")
+    print("=" * 80)
 
-    print("\n1. Detecting planes in scene...")
-    detector = PlaneDetection(distance_threshold=1.0, min_inliers=50)
-    planes = detector.detect_planes(scene.points, num_planes=3)
+    print("\n1. Comparing plane detection methods...")
+    print("   Methods: RANSAC, Linear Regression, K-Means")
 
-    print(f"   Planes detected: {len(planes)}")
+    comparator = ModelComparison()
+    results = comparator.compare_all_methods(points)
 
-    for i, plane in enumerate(planes):
-        print(f"\n   Plane {i + 1}:")
-        print(f"      Type: {plane.plane_type}")
-        print(f"      Normal: {plane.normal}")
-        print(f"      Points: {len(plane.points_indices)}")
-        print(f"      Area: {plane.area:.2f}")
+    # Print comparison
+    print("\n2. Comparison Results:")
+    comparator.print_comparison(results)
 
+    # Print detailed metrics
+    print("\n3. Detailed Metrics:")
+    print("-" * 80)
+    for method_name, result in results.items():
+        print(f"\n   {method_name}:")
+        print(f"     Inlier Count: {result.inlier_count}")
+        print(f"     Inlier Ratio: {result.inlier_ratio:.3f}")
+        print(f"     Computation Time: {result.computation_time*1000:.3f} ms")
+        print(f"     Plane Normal: {result.plane_normal}")
 
-def demo_level2_occupancy_grid():
-    """Demonstrate Level 2 occupancy grid"""
-    print("\n" + "=" * 60)
-    print("LEVEL 2 - 3D Occupancy Grid")
-    print("=" * 60)
-
-    # Load scene
-    print("\n1. Loading scene...")
-    scene = PointCloudLoader.create_synthetic_scene()
-    min_b, max_b = scene.get_bounds()
-
-    # Create grid
-    print("\n2. Creating occupancy grid...")
-    grid = OccupancyGrid3D(min_b, max_b, cell_size=2.0)
-    print(f"   Grid shape: {grid.grid.shape}")
-    print(f"   Cell size: {grid.cell_size}")
-
-    # Mark obstacles
-    print("\n3. Marking obstacles...")
-    non_ground = scene.points[::3]  # Every 3rd point
-    grid.mark_occupied(non_ground)
-
-    # Check navigability
-    print("\n4. Checking navigability...")
-    free_cells = grid.get_free_cells()
-    occupied_cells = grid.get_occupied_cells()
-
-    print(f"   Free cells: {len(free_cells)}")
-    print(f"   Occupied cells: {len(occupied_cells)}")
+    return results
 
 
-def demo_level2_pathfinding():
-    """Demonstrate Level 2 A* pathfinding"""
-    print("\n" + "=" * 60)
-    print("LEVEL 2 - A* Pathfinding")
-    print("=" * 60)
+def demo_visualization_comparison(points: np.ndarray, results: dict):
+    """Visualize comparison results"""
+    print("\n" + "=" * 80)
+    print("DEMO 3: VISUALIZATION COMPARISON")
+    print("=" * 80)
 
-    # Setup
-    print("\n1. Setting up environment...")
-    scene = PointCloudLoader.create_synthetic_scene()
-    min_b, max_b = scene.get_bounds()
+    print("\nVisualizing results from each method...")
+    print("(Close each visualization window to proceed to the next)")
 
-    grid = OccupancyGrid3D(min_b, max_b, cell_size=2.0)
-
-    # Mark some obstacles
-    print("\n2. Creating obstacles...")
-    obstacle_center = (min_b + max_b) / 2
-    for i in range(-10, 10):
-        for j in range(-10, 10):
-            pos = obstacle_center + np.array([i * 2, j * 2, 0])
-            if grid.is_navigable(pos):
-                grid.mark_occupied(np.array([pos]))
-
-    # Find path
-    print("\n3. Finding path...")
-    pathfinder = AStarPathfinder()
-    start = min_b + np.array([5, 5, 2])
-    goal = max_b - np.array([5, 5, 2])
-
-    path = pathfinder.find_path(start, goal, grid)
-
-    if path:
-        print(f"   Path found with {len(path)} waypoints")
-        print(f"   Start: {start}")
-        print(f"   Goal: {goal}")
-        print(f"   Path length: {sum(np.linalg.norm(np.diff(path, axis=0), axis=1)):.2f}m")
-    else:
-        print("   No path found")
+    visualizer = Open3DVisualizer()
+    visualizer.visualize_comparison_results(points, results)
 
 
-def demo_level2_navigation_agent():
-    """Demonstrate Level 2 navigation agent"""
-    print("\n" + "=" * 60)
-    print("LEVEL 2 - Navigation Agent with Observer Pattern")
-    print("=" * 60)
+def demo_real_scene():
+    """Demonstrate with more realistic scene"""
+    print("\n" + "=" * 80)
+    print("DEMO 4: REALISTIC INDOOR SCENE")
+    print("=" * 80)
 
-    # Setup
-    print("\n1. Creating navigation environment...")
-    scene = PointCloudLoader.create_synthetic_scene()
-    min_b, max_b = scene.get_bounds()
+    print("\n1. Creating realistic indoor scene...")
+    # Floor
+    floor_x = np.random.uniform(-10, 10, 5000)
+    floor_y = np.random.uniform(-10, 10, 5000)
+    floor_z = np.random.normal(0, 0.05, 5000)
+    floor = np.column_stack([floor_x, floor_y, floor_z])
 
-    grid = OccupancyGrid3D(min_b, max_b, cell_size=2.0)
-    grid.mark_occupied(scene.points[::5])
+    # Wall 1 (vertical)
+    wall1_x = np.ones(2000) * 10
+    wall1_y = np.random.uniform(-10, 10, 2000)
+    wall1_z = np.random.uniform(0, 3, 2000)
+    wall1 = np.column_stack([wall1_x, wall1_y, wall1_z])
 
-    # Create agent and observer
-    print("\n2. Creating navigation agent...")
-    agent = NavigationAgent(grid)
+    # Wall 2 (vertical)
+    wall2_x = np.random.uniform(-10, 10, 2000)
+    wall2_y = np.ones(2000) * 10
+    wall2_z = np.random.uniform(0, 3, 2000)
+    wall2 = np.column_stack([wall2_x, wall2_y, wall2_z])
 
-    observer = ConsoleObserver()
-    agent.attach(observer)
+    # Ceiling
+    ceiling_x = np.random.uniform(-10, 10, 2000)
+    ceiling_y = np.random.uniform(-10, 10, 2000)
+    ceiling_z = np.random.normal(3, 0.05, 2000)
+    ceiling = np.column_stack([ceiling_x, ceiling_y, ceiling_z])
 
-    # Set position and goal
-    print("\n3. Setting navigation goal...")
-    start_pos = min_b + np.array([10, 10, 2])
-    goal_pos = max_b - np.array([10, 10, 2])
+    scene = np.vstack([floor, wall1, wall2, ceiling])
+    print(f"   Created scene with {len(scene)} points")
 
-    agent.current_position = start_pos
-    success = agent.set_goal(goal_pos)
+    # Detect planes
+    print("\n2. Detecting planes in scene...")
+    detector = RANSACPlaneDetector(
+        distance_threshold=0.2,
+        iterations=500,
+        min_points_per_plane=100,
+        max_planes=6,
+    )
 
-    if success:
-        print(f"\n4. Following path...")
-        # Simulate following path
-        for i in range(min(5, len(agent.current_path))):
-            waypoint = agent.get_next_waypoint()
-            if waypoint is not None:
-                agent.update_position(waypoint)
+    planes = detector.detect_planes(scene)
+    print(f"   Found {len(planes)} planes")
 
-        print(f"\n   Agent status:")
-        print(f"   Current waypoint: {agent.current_waypoint_idx}/{len(agent.current_path)}")
-        print(f"   Remaining distance: {agent.get_remaining_distance():.2f}m")
+    # Print plane information
+    print("\n3. Detected Planes:")
+    for plane in planes:
+        print(f"   Plane {plane.plane_id}: {plane.inlier_count} inliers "
+              f"({100*plane.inlier_count/len(scene):.1f}%)")
+
+    # Visualize
+    print("\n4. Launching visualization...")
+    visualizer = Open3DVisualizer("Indoor Scene - Multi-Plane Detection")
+    visualizer.visualize_point_cloud_with_planes(scene, planes)
 
 
 def main():
     """Run all demonstrations"""
-    print("\n" + "=" * 60)
-    print("LiDAR VR Navigation System Demonstration")
-    print("=" * 60)
+    print("\n" + "=" * 80)
+    print("LIDAR RANSAC PLANE DETECTION - COMPLETE DEMONSTRATION")
+    print("=" * 80)
 
     try:
-        # Level 1 demonstrations
-        print("\n\nLEVEL 1 - FUNDAMENTALS")
-        print("=" * 60)
+        # Get input source (synthetic or PLY file)
+        points = get_input_source()
+        print(f"   Using {len(points)} points for analysis")
 
-        scene_l1, result_ransac = demo_level1_ransac()
-        demo_level1_teleportation(scene_l1, result_ransac)
+        # Ask which demos to run
+        demo_choice = input("\nRun all demos (1) or basic RANSAC only (2)? Default is all (1): ").strip()
+        
+        if demo_choice == "2":
+            # Run only basic RANSAC
+            _, planes = demo_ransac_multi_plane(points)
+        else:
+            # Run all demos
+            _, planes = demo_ransac_multi_plane(points)
 
-        print("\n")
-        scene_l1_dl, result_dl = demo_level1_dl()
+            # Demo 2: Model comparison
+            results = demo_model_comparison(points)
 
-        # Level 2 demonstrations
-        print("\n\nLEVEL 2 - ADVANCED NAVIGATION")
-        print("=" * 60)
+            # Demo 3: Visualization comparison
+            demo_visualization_comparison(points, results)
 
-        scene_l2, result_clustering = demo_level2_clustering()
-        demo_level2_plane_detection(scene_l2)
-        demo_level2_occupancy_grid()
-        demo_level2_pathfinding()
-        demo_level2_navigation_agent()
+            # Demo 4: Realistic scene
+            demo_real_scene()
 
-        print("\n" + "=" * 60)
-        print("[✓] All demonstrations completed successfully")
-        print("=" * 60 + "\n")
+        print("\n" + "=" * 80)
+        print("DEMONSTRATION COMPLETED")
+        print("=" * 80)
+        print("\nKey Results:")
+        if planes:
+            print(f"  - Found {len(planes)} planes in point cloud")
+            for plane in planes[:3]:
+                print(f"    Plane {plane.plane_id}: {plane.inlier_count} inliers "
+                      f"({100*plane.inlier_count/len(points):.1f}%)")
 
+    except ImportError as e:
+        print(f"\nError: Missing dependency - {e}")
+        print("\nPlease install required packages:")
+        print("  pip install -r requirements.txt")
     except Exception as e:
-        print(f"\n[✗] Error during demonstration: {e}")
+        print(f"\nError during demonstration: {e}")
         import traceback
-
         traceback.print_exc()
 
 
