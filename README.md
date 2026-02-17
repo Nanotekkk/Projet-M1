@@ -1,9 +1,12 @@
 # LiDAR RANSAC Plane Detection
 
 **Author:** Matheo LANCEA  
-**Project:** M1 University Project
+**Project:** M1 University Project  
+**Status:** ✅ Active
 
 A comprehensive Python implementation focusing on **RANSAC-based multi-plane detection** with advanced visualization in Open3D and comparison with other plane fitting methods.
+
+---
 
 ## 🎯 Project Objectives
 
@@ -11,9 +14,12 @@ A comprehensive Python implementation focusing on **RANSAC-based multi-plane det
 - ✅ **Multi-plane detection** using RANSAC algorithm
 - ✅ **Color-coded plane visualization** in Open3D
 - ✅ **Method comparison**: RANSAC vs Linear Regression, K-Means
+- ✅ **PLY file loading** support for real point cloud data
 - ✅ **Synthetic scene generation** for testing
 - ✅ **Performance metrics** and computation time analysis
 - ✅ **Realistic indoor scene** detection (floor, walls, ceiling)
+
+---
 
 ## 🚀 Quick Start
 
@@ -38,98 +44,390 @@ pip install -e .
 ### Run Demonstrations
 
 ```bash
-# Run complete demonstration with all 4 demos
+# Interactive mode - choose data source and demos
 python main.py
 
-# Demos include:
-# 1. RANSAC Multi-Plane Detection (3 planes)
-# 2. Method Comparison (6 different approaches)
-# 3. Visualization Comparison (view each method's results)
-# 4. Realistic Indoor Scene (floor + walls + ceiling)
+# Then select:
+# 1. Generate synthetic data or Load PLY file
+# 2. Run all 4 demos or RANSAC only
 ```
 
-## 📊 Detection Methods & Comparison
+**Demos include:**
+1. **RANSAC Multi-Plane Detection** - Detects 3 planes with color coding
+2. **Method Comparison** - Compares RANSAC vs Linear Regression vs K-Means
+3. **Visualization Comparison** - View results from each method in Open3D
+4. **Realistic Indoor Scene** - Floor + walls + ceiling detection
 
-The system compares 6 different plane detection methods:
+---
 
-| Method | Strengths | Weaknesses | Speed |
-|--------|-----------|-----------|-------|
-| **RANSAC** | Robust to outliers, finds all planes | Requires tuning, iterative | Medium |
-| **Linear Regression** | Fast, simple implementation | Assumes z=f(x,y), biased | Fast |
-| **K-Means** | Unsupervised clustering, global | Number of clusters must be known | Fast |
-| **GMM** | Probabilistic, handles uncertainty | Requires EM iterations | Slow |
-| **PCA** | Finds plane normal via variance | Single dominant plane only | Very Fast |
-| **Height-Based** | Simple heuristic baseline | Very simple, limited accuracy | Instant |
+## 📊 Detection Methods
 
-## 🎨 Plane Visualization
+### Comparison of 3 Methods
 
-Each detected plane is assigned a unique color for easy identification:
-- **Red**: Plane 0
-- **Green**: Plane 1
-- **Blue**: Plane 2
-- **Yellow**: Plane 3
-- **Magenta**: Plane 4
-- **Cyan**: Plane 5
-- **Orange** / **Purple** / **Pink**: Additional planes
+| Method | Pros | Cons | Speed |
+|--------|------|------|-------|
+| **RANSAC** | ✓ Robust to outliers | Requires parameter tuning | Medium |
+| | ✓ Detects all planes | Iterative approach | |
+| **Linear Regression** | ✓ Very fast | ✗ Sensitive to outliers | Very Fast |
+| | ✓ Simple to implement | ✗ Assumes z=f(x,y) | |
+| **K-Means** | ✓ Unsupervised learning | ✗ Must specify k clusters | Fast |
+| | ✓ Global segmentation | ✗ Different results per run | |
 
-Unassigned points are shown in light gray.
+### Algorithm Details
 
-### Using the Visualizer
+#### RANSAC (RANdom SAmple Consensus)
+- Iteratively samples 3 random points
+- Fits plane using SVD
+- Counts inliers within distance threshold
+- Keeps plane with most inliers
+- Removes inliers and repeats
+
+#### Linear Regression
+- Fits plane to equation: z = ax + by + c
+- Uses scikit-learn LinearRegression
+- Fast and simple
+- Best for relatively flat surfaces
+
+#### K-Means
+- Clusters points into k groups
+- Selects cluster with most points as plane
+- Fits plane to selected cluster
+- Good for multi-plane scenes
+
+---
+
+## 🎨 Color-Coded Planes
+
+Each detected plane gets a unique color:
+
+| Color | RGB | Plane ID |
+|-------|-----|----------|
+| 🔴 Red | (255, 0, 0) | 0 |
+| 🟢 Green | (0, 255, 0) | 1 |
+| 🔵 Blue | (0, 0, 255) | 2 |
+| 🟡 Yellow | (255, 255, 0) | 3 |
+| 🟣 Magenta | (255, 0, 255) | 4 |
+| 🔷 Cyan | (0, 255, 255) | 5 |
+| 🟠 Orange | (255, 165, 0) | 6+ |
+
+Unassigned points appear in light gray.
+
+---
+
+## 📁 Project Structure
+
+```
+Projet-M1/
+├── src/
+│   ├── plane_detection/
+│   │   ├── __init__.py
+│   │   ├── ransac_detector.py      # RANSAC multi-plane detection
+│   │   └── model_comparison.py     # 3-method comparison framework
+│   │
+│   ├── visualization/
+│   │   ├── __init__.py
+│   │   └── open3d_visualizer.py    # Open3D visualization
+│   │
+│   └── core/
+│       ├── __init__.py
+│       └── point_cloud_loader.py   # Load PLY/PCD/XYZ files
+│
+├── tests/
+│   ├── unit/
+│   │   ├── test_ransac.py
+│   │   └── test_model_comparison.py
+│   └── integration/
+│       └── test_e2e.py
+│
+├── main.py                          # Interactive demonstration
+├── generate_ply.py                  # Generate random PLY files
+├── test_ply_loading.py              # Test PLY loading
+├── requirements.txt
+└── README.md
+```
+
+---
+
+## 💻 Usage Examples
+
+### Example 1: Basic RANSAC Detection
 
 ```python
+import numpy as np
 from src.plane_detection.ransac_detector import RANSACPlaneDetector
 from src.visualization.open3d_visualizer import Open3DVisualizer
-import numpy as np
 
-# Load or create point cloud
+# Create sample point cloud
 points = np.random.randn(10000, 3)
 
 # Detect planes
-detector = RANSACPlaneDetector(distance_threshold=0.1, max_planes=5)
+detector = RANSACPlaneDetector(
+    distance_threshold=0.15,
+    iterations=1000,
+    max_planes=5
+)
 planes = detector.detect_planes(points)
 
 # Visualize
 visualizer = Open3DVisualizer("My Point Cloud")
 visualizer.visualize_point_cloud_with_planes(points, planes)
+
+# Print results
+for plane in planes:
+    print(f"Plane {plane.plane_id}:")
+    print(f"  Normal: {plane.normal}")
+    print(f"  Inliers: {plane.inlier_count}")
+    print(f"  Color: {plane.color}")
 ```
 
-## 🔬 Model Comparison
+### Example 2: Compare Methods
 
 ```python
 from src.plane_detection.model_comparison import ModelComparison
 import numpy as np
 
 # Create point cloud
-points = np.random.randn(10000, 3)
+points = np.random.randn(5000, 3)
 
-# Compare all methods
+# Compare methods
 comparator = ModelComparison()
 results = comparator.compare_all_methods(points)
 
-# Print results
+# Print comparison table
 comparator.print_comparison(results)
 
-# Access detailed metrics
+# Access individual results
 for method_name, result in results.items():
-    print(f"{method_name}:")
-    print(f"  - Inliers: {result.inlier_count}")
-    print(f"  - Ratio: {result.inlier_ratio:.3f}")
-    print(f"  - Time: {result.computation_time*1000:.2f} ms")
+    print(f"\n{method_name}:")
+    print(f"  Inliers: {result.inlier_count}")
+    print(f"  Ratio: {result.inlier_ratio:.2%}")
+    print(f"  Time: {result.computation_time*1000:.2f} ms")
+    print(f"  Normal: {result.plane_normal}")
 ```
 
-## 📁 Project Structure
+### Example 3: Load PLY File
 
+```python
+from src.core.point_cloud_loader import PointCloudLoader
+from src.plane_detection.ransac_detector import RANSACPlaneDetector
+
+# Load PLY file
+point_cloud = PointCloudLoader.load_from_file("my_data.ply")
+points = point_cloud.points
+
+# Detect planes
+detector = RANSACPlaneDetector()
+planes = detector.detect_planes(points)
+
+print(f"Loaded {len(points)} points")
+print(f"Detected {len(planes)} planes")
 ```
-src/
-├── plane_detection/
-│   ├── ransac_detector.py       # RANSAC multi-plane detector
-│   ├── model_comparison.py       # Comparison of 6 detection methods
-│   └── __init__.py
-│
-├── visualization/
-│   ├── open3d_visualizer.py     # Open3D visualization with colored planes
-│   └── __init__.py
+
+### Example 4: Generate Random PLY Files
+
+```bash
+# Generate multi-plane PLY with 10000 points
+python generate_ply.py my_scene.ply -n 10000 -p multi_plane --colors
+
+# Generate sphere
+python generate_ply.py sphere.ply -n 5000 -p sphere
+
+# Generate cube
+python generate_ply.py cube.ply -n 5000 -p cube
 ```
+
+---
+
+## 🔧 Configuration
+
+### RANSAC Parameters
+
+```python
+detector = RANSACPlaneDetector(
+    distance_threshold=0.15,       # Max distance to plane (inlier threshold)
+    iterations=1000,               # Number of RANSAC iterations
+    min_points_per_plane=50,       # Minimum points to define a plane
+    max_planes=5,                  # Maximum planes to detect
+    inlier_ratio_threshold=0.05    # Minimum inlier ratio (5%)
+)
+```
+
+**Tips:**
+- Lower `distance_threshold` for cleaner results (more strict)
+- Increase `iterations` for more robust detection
+- Adjust `max_planes` based on expected scene complexity
+- Use `inlier_ratio_threshold` to filter out noise
+
+---
+
+## � PLY Generation Guide
+
+### Generate Various Shapes
+
+Use `generate_ply.py` to create test data with different geometric patterns:
+
+#### 1. Single Plane (Flat Surface)
+```bash
+python generate_ply.py single_plane.ply -p single_plane -n 5000
+```
+**Use case:** Test basic plane detection on flat ground  
+**Features:** 5000 points on a flat surface with optional noise
+
+#### 2. Multi-Plane (Indoor Scene)
+```bash
+python generate_ply.py multi_plane.ply -p multi_plane -n 10000 --colors
+```
+**Use case:** Test RANSAC with multiple planes (floor + 2 walls)  
+**Features:**
+- Floor: 4000 points at z ≈ 0
+- Wall 1: 3000 points at x ≈ 10 (vertical)
+- Wall 2: 3000 points at y ≈ 10 (vertical)
+- Optional RGB colors for better visualization
+
+#### 3. Sphere (3D Surface)
+```bash
+python generate_ply.py sphere.ply -p sphere -n 5000
+```
+**Use case:** Test robustness to curved surfaces (no flat planes)  
+**Features:**
+- Points distributed on sphere surface
+- Radius: 10 units
+- Good for testing false positive rejection
+
+#### 4. Cube (Random Volume)
+```bash
+python generate_ply.py cube.ply -p cube -n 5000
+```
+**Use case:** Random points in 3D space  
+**Features:**
+- Points randomly distributed inside cubic volume
+- Box dimensions: -5 to +5 in all axes
+- Ideal for general clustering tests
+
+#### 5. Fully Random Points
+```bash
+python generate_ply.py random.ply -p random -n 5000
+```
+**Use case:** Test outlier robustness  
+**Features:**
+- Completely random point distribution
+- Range: -10 to +10 in all axes
+- No structure for stress testing
+
+### Command Options Reference
+
+| Option | Description | Default | Example |
+|--------|-------------|---------|---------|
+| Output file | Filename to save | `random_test.ply` | `scene.ply` |
+| `-n, --num-points` | Number of points | 5000 | `-n 10000` |
+| `-p, --pattern` | Shape type | multi_plane | `-p sphere` |
+| `--noise` | Noise level 0.0-1.0 | 0.1 | `--noise 0.05` |
+| `--colors` | Add RGB colors | No | `--colors` |
+
+### Advanced Examples
+
+**Large realistic scene:**
+```bash
+python generate_ply.py office.ply -p multi_plane -n 50000 --colors --noise 0.05
+```
+Creates: 50,000 points, multiple planes, with colors, minimal noise
+
+**Noisy sphere for robust testing:**
+```bash
+python generate_ply.py noisy_sphere.ply -p sphere -n 10000 --noise 0.3
+```
+Creates: Sphere with heavy noise (30%)
+
+**Clean simple plane:**
+```bash
+python generate_ply.py clean_floor.ply -p single_plane -n 3000 --noise 0.01
+```
+Creates: Very clean single plane (1% noise)
+
+**Generate all test types:**
+```bash
+python generate_ply.py floor.ply -p single_plane -n 5000
+python generate_ply.py building.ply -p multi_plane -n 10000 --colors
+python generate_ply.py sphere.ply -p sphere -n 8000
+python generate_ply.py box.ply -p cube -n 6000
+python generate_ply.py cloud.ply -p random -n 7000
+```
+
+**Batch generation (Bash):**
+```bash
+for pattern in single_plane multi_plane sphere cube random; do
+    python generate_ply.py test_${pattern}.ply -p $pattern -n 5000
+done
+```
+
+### Using Generated Files
+
+1. **Interactive mode:**
+```bash
+python main.py
+# Select: 2 (Load PLY file)
+# Enter: multi_plane.ply
+# Start detection!
+```
+
+2. **Python script:**
+```python
+from src.core.point_cloud_loader import PointCloudLoader
+from src.plane_detection.ransac_detector import RANSACPlaneDetector
+
+# Load PLY
+pc = PointCloudLoader.load_from_file("sphere.ply")
+detector = RANSACPlaneDetector(max_planes=3)
+planes = detector.detect_planes(pc.points)
+print(f"Found {len(planes)} planes in {len(pc.points)} points")
+```
+
+3. **Programmatic generation:**
+```python
+from generate_ply import generate_random_ply
+
+# Generate multiple types
+generate_random_ply("test_plane.ply", num_points=5000, pattern="single_plane")
+generate_random_ply("test_room.ply", num_points=15000, pattern="multi_plane", add_colors=True)
+generate_random_ply("test_sphere.ply", num_points=8000, pattern="sphere", noise_level=0.2)
+generate_random_ply("test_cube.ply", num_points=10000, pattern="cube")
+```
+
+### PLY File Format
+
+Generated PLY files support:
+- ASCII format (text-based, human-readable)
+- Optional RGB color data (0-255 per channel)
+- XYZ coordinates (float precision)
+- Compatible with Open3D, CloudCompare, Meshlab
+
+Example PLY header:
+```
+ply
+format ascii 1.0
+element vertex 5000
+property float x
+property float y
+property float z
+property uchar red      (optional if --colors)
+property uchar green    (optional if --colors)
+property uchar blue     (optional if --colors)
+end_header
+```
+
+---
+
+## �📈 Performance Metrics
+
+Each method returns:
+- **Inlier Count**: Number of points on detected plane
+- **Inlier Ratio**: Percentage of points (0.0 - 1.0)
+- **Plane Normal**: Unit normal vector (nx, ny, nz)
+- **Plane Distance**: Distance from origin (d in equation)
+- **Computation Time**: Execution time in seconds
+- **Additional Metrics**: Method-specific data
+
+---
 
 ## 🧪 Testing
 
@@ -140,515 +438,133 @@ pytest
 # Run specific test file
 pytest tests/unit/test_ransac.py -v
 
-# Run with coverage
+# Run model comparison tests
+pytest tests/unit/test_model_comparison.py -v
+
+# Run with coverage report
 pytest --cov=src tests/
 ```
 
-## 📝 Example: Multi-Plane Indoor Scene
+---
+
+## 📝 Real-World Example
 
 ```python
-import numpy as np
+# Indoor scene with floor, walls, ceiling
+
+from src.visualization.open3d_visualizer import create_synthetic_scene
 from src.plane_detection.ransac_detector import RANSACPlaneDetector
 from src.visualization.open3d_visualizer import Open3DVisualizer
 
-# Create floor, walls, ceiling
-floor = np.random.uniform(-10, 10, (5000, 3))
-floor[:, 2] = 0  # z=0
+# Create realistic scene
+points = create_synthetic_scene(
+    num_points=15000,
+    num_planes=3,
+    noise_level=0.1
+)
 
-wall = np.ones((2000, 3)) * 10
-wall[:, 1] = np.random.uniform(-10, 10, 2000)
-wall[:, 2] = np.random.uniform(0, 3, 2000)
-
-ceiling = np.random.uniform(-10, 10, (2000, 3))
-ceiling[:, 2] = 3  # z=3
-
-scene = np.vstack([floor, wall, ceiling])
-
-# Detect planes
-detector = RANSACPlaneDetector(max_planes=6)
-planes = detector.detect_planes(scene)
+# Detect with RANSAC
+detector = RANSACPlaneDetector(
+    distance_threshold=0.2,
+    iterations=500,
+    max_planes=6
+)
+planes = detector.detect_planes(points)
 
 # Visualize
 viz = Open3DVisualizer("Indoor Scene")
-viz.visualize_point_cloud_with_planes(scene, planes)
+viz.visualize_point_cloud_with_planes(points, planes)
 
-# Print results
+# Print summary
+print(f"\n{'='*50}")
+print(f"Scene Analysis")
+print(f"{'='*50}")
+print(f"Total points: {len(points)}")
+print(f"Planes detected: {len(planes)}")
 for plane in planes:
-    print(f"Plane {plane.plane_id}: {plane.inlier_count} points - Color: {plane.color}")
+    coverage = 100 * plane.inlier_count / len(points)
+    print(f"  Plane {plane.plane_id}: {plane.inlier_count} inliers ({coverage:.1f}%)")
 ```
-
-## 🔧 Configuration
-
-### RANSAC Parameters
-
-```python
-detector = RANSACPlaneDetector(
-    distance_threshold=0.1,      # Max distance to plane (inlier threshold)
-    iterations=1000,             # RANSAC iterations
-    min_points_per_plane=10,     # Minimum inliers to define a plane
-    max_planes=10,               # Maximum planes to detect
-    inlier_ratio_threshold=0.05  # Min ratio of inliers (5%)
-)
-```
-
-## 📈 Performance Metrics
-
-Each method returns:
-- **Inlier Count**: Number of points belonging to detected plane
-- **Inlier Ratio**: Percentage of points in plane (0-1)
-- **Plane Normal**: Unit normal vector (a, b, c)
-- **Plane Distance**: Distance from origin (d in ax+by+cz+d=0)
-- **Computation Time**: Execution time in seconds
-- **Additional Metrics**: Method-specific information
-
-## 💡 Tips & Best Practices
-
-1. **Adjust distance_threshold** based on your sensor noise
-2. **Use visualization** to validate detected planes before processing
-3. **Compare methods** to choose best approach for your data
-4. **Test on synthetic data** first, then real data
-5. **Tune max_planes** conservatively to avoid over-segmentation
-6. **Check inlier_ratio** to ensure planes are meaningful (>5%)
-
-## 🛠️ Troubleshooting
-
-**Open3D visualization not showing?**
-- Ensure Open3D is installed: `pip install open3d`
-- Check system supports GUI (not over SSH)
-
-**Planes not detected?**
-- Increase iterations or decrease distance_threshold
-- Check point cloud quality and density
-
-**Slow performance?**
-- Reduce number of points (downsample)
-- Decrease iterations
-- Use Linear Regression for faster results
-
-## 📖 References
-
-- **RANSAC**: Fischler & Bolles (1981)
-- **Open3D**: Zhou et al., "Open3D: A Modern Library for 3D Data Processing"
-- **SVD Plane Fitting**: Linear algebra fundamentals
-
-## 📄 License
-
-Educational project - Free to use
-
-## 👨‍💻 Author
-
-**Matheo LANCEA** - M1 University Project
 
 ---
 
-**Updated:** 2026-02-17  
-**Status:** Active Development
+## ⚡ Performance Tips
 
-| Pattern | Location | Purpose |
-|---------|----------|---------|
-| **Strategy** | `segmentation_strategy.py` | Switch between RANSAC/DL segmentation |
-| **Factory** | `point_cloud_loader.py` | Create point clouds from various sources |
-| **Observer** | `observer.py` + `navigation_agent.py` | Event notifications for navigation updates |
-| **Composite** | `occupancy_grid_3d.py` | Hierarchical spatial representation |
+1. **Improve Speed:**
+   - Use Linear Regression for quick results
+   - Downsample large point clouds
+   - Reduce RANSAC iterations
 
-## 📊 Level 1 Components
+2. **Improve Quality:**
+   - Increase RANSAC iterations
+   - Fine-tune distance_threshold
+   - Remove outliers first
 
-### RANSAC Ground Detection
+3. **Better Visualization:**
+   - Adjust point size in visualizer
+   - Use background color for contrast
+   - Normalize plane normals
 
-Detects the primary ground plane using Random Sample Consensus.
+---
 
-```python
-from src.level1.ransac_segmentation import RANSACSegmentation
+## 🐛 Troubleshooting
 
-ransac = RANSACSegmentation(
-    distance_threshold=0.2,  # Points within 20cm of plane
-    iterations=1000
-)
-result = ransac.segment(point_cloud)
-ground_indices = result.ground_indices
-```
+| Issue | Solution |
+|-------|----------|
+| Open3D window doesn't appear | Install Open3D: `pip install open3d` |
+| Planes not detected | Increase iterations or lower threshold |
+| Slow performance | Downsample points or use Linear Regression |
+| PLY file not loading | Check file format (must be ASCII or binary PLY) |
+| Wrong plane normals | Check if normals are normalized |
 
-**Algorithm**: 
-- Randomly sample 3 points → fit plane
-- Count points within distance threshold
-- Keep plane with most inliers
-- Complexity: O(I × n) where I=iterations, n=points
+---
 
-### Deep Learning Segmentation
-
-Train and use neural networks for ground classification.
-
-```python
-from src.level1.dl_segmentation import DLSegmentation
-
-dl = DLSegmentation(confidence_threshold=0.5)
-dl.train_model(training_points, labels, epochs=10)
-result = dl.segment(point_cloud)
-```
-
-**Architecture**:
-- Input: 3D coordinates
-- Hidden layers: 64 neurons with ReLU + Dropout
-- Output: Binary classification (ground/non-ground)
-
-### Teleportation Validator
-
-Validates VR teleportation positions.
-
-```python
-from src.level1.teleportation_validator import TeleportationValidator
-
-validator = TeleportationValidator(
-    min_ground_points=10,
-    max_height_above_ground=0.5
-)
-validation = validator.validate_position(position, ground_points)
-if validation.is_valid:
-    # Safe to teleport
-    pass
-```
-
-**Validation Criteria**:
-- ✓ Sufficient ground points nearby
-- ✓ Position not too high above surface
-- ✓ Surface is reasonably flat
-
-## 🎮 Level 2 Components
-
-### Euclidean Clustering
-
-Segment point cloud into distinct objects.
-
-```python
-from src.level2.euclidean_clustering import EuclideanClustering
-
-clustering = EuclideanClustering(eps=0.5, min_points=5)
-result = clustering.adaptive_clustering(point_cloud)
-print(f"Found {result.n_clusters} clusters")
-```
-
-**Algorithm**: DBSCAN (Density-Based Spatial Clustering)
-
-### Plane Detection
-
-Detect multiple planes (floors, walls, ceilings).
-
-```python
-from src.level2.plane_detection import PlaneDetection
-
-detector = PlaneDetection()
-planes = detector.detect_planes(point_cloud, num_planes=3)
-
-for plane in planes:
-    print(f"{plane.plane_type}: {len(plane.points_indices)} points")
-```
-
-**Output**:
-- Plane normal vectors
-- Surface areas
-- Point sets per plane
-- Classification (horizontal/vertical/inclined)
-
-### 3D Occupancy Grid
-
-Discretized representation of navigable space.
-
-```python
-from src.level2.occupancy_grid_3d import OccupancyGrid3D
-
-grid = OccupancyGrid3D(
-    min_bounds=np.array([0, 0, 0]),
-    max_bounds=np.array([100, 100, 10]),
-    cell_size=1.0  # 1 meter cells
-)
-
-grid.mark_occupied(obstacle_points)
-if grid.is_navigable(position):
-    # Safe position
-    pass
-```
-
-**Features**:
-- World ↔ Grid coordinate conversion
-- 6-connected or 26-connected neighborhoods
-- Occupancy confidence scores
-- Free cell enumeration
-
-### A* Pathfinding
-
-Find optimal paths in 3D space.
-
-```python
-from src.level2.pathfinding_a_star import AStarPathfinder
-
-pathfinder = AStarPathfinder()
-path = pathfinder.find_path(
-    start=np.array([10, 10, 5]),
-    goal=np.array([90, 90, 5]),
-    occupancy_grid=grid
-)
-
-if path:
-    for waypoint in path:
-        print(f"Go to: {waypoint}")
-```
-
-**Algorithm**: A* with Euclidean heuristic
-- Time: O((V + E) log V)
-- Optimal path guarantee
-- Supports weighted movement costs
-
-### Navigation Agent
-
-Intelligent agent managing navigation with event notifications.
-
-```python
-from src.level2.navigation_agent import NavigationAgent
-from src.core.observer import Observer
-
-class MyObserver(Observer):
-    def update(self, event_type, data):
-        if event_type == "waypoint_reached":
-            print(f"Reached waypoint: {data}")
-        elif event_type == "goal_reached":
-            print("Navigation complete!")
-
-agent = NavigationAgent(grid)
-agent.attach(MyObserver())
-
-agent.current_position = start_pos
-agent.set_goal(goal_pos)
-
-# Simulate navigation
-while not agent.is_at_goal():
-    direction = agent.get_path_following_direction()
-    # Move agent...
-    agent.update_position(new_position)
-```
-
-**Features**:
-- Automatic path computation
-- Path deviation detection
-- Dynamic recalculation
-- Event-based notifications
-- Waypoint management
-
-## 🧪 Testing
-
-### Test Coverage
-
-- **Unit Tests**: 50+ test cases
-- **Integration Tests**: Multi-component workflows
-- **Coverage**: 90%+ of core logic
-
-### Test Categories
-
-```bash
-# All tests
-pytest
-
-# By level
-pytest -m level1
-pytest -m level2
-
-# By type
-pytest -m unit
-pytest -m integration
-
-# Specific component
-pytest tests/unit/test_level1_segmentation.py::TestRANSACSegmentation
-
-# With coverage report
-pytest --cov=src --cov-report=html tests/
-```
-
-### Test Structure
+## 📚 Dependencies
 
 ```
-tests/unit/
-├── test_point_cloud_loader.py        # Factory pattern
-├── test_level1_segmentation.py       # RANSAC + DL
-├── test_level1_teleportation.py      # Validation
-└── test_level2_navigation.py         # Advanced features
+numpy>=1.24.0          # Numerical computing
+scikit-learn>=1.3.0    # Machine learning
+scipy>=1.11.0          # Scientific computing
+open3d>=0.17.0         # 3D visualization
+pandas>=2.0.0          # Data analysis
 ```
 
-## 📈 Algorithm Performance
+---
 
-### Timing (on 10K point cloud)
+## 📖 References
 
-| Algorithm | Time | Memory |
-|-----------|------|--------|
-| RANSAC (1000 iter) | ~150ms | ~5MB |
-| DL Inference | ~50ms | ~10MB |
-| DBSCAN Clustering | ~200ms | ~8MB |
-| Plane Detection | ~300ms | ~6MB |
-| A* Pathfinding | ~100ms | ~20MB |
+- **RANSAC**: Fischler & Bolles (1981) - "Random Sample Consensus: A Paradigm for Model Fitting"
+- **Open3D**: Zhou et al. - "Open3D: A Modern Library for 3D Data Processing"
+- **SVD**: Linear Algebra - Singular Value Decomposition for plane fitting
+- **Linear Regression**: Least squares plane fitting
 
-### Accuracy Metrics
+---
 
-| Component | Accuracy | Notes |
-|-----------|----------|-------|
-| RANSAC Ground | 85-95% | Depends on noise level |
-| DL Ground | 90-98% | With proper training |
-| Teleport Validation | 95%+ | High safety margin |
-| Pathfinding | 100% | Optimal paths |
+## 📄 License
 
-## 🔧 Configuration
+**Educational Project** - Free to use and modify
 
-### RANSAC Parameters
+---
 
-```python
-RANSACSegmentation(
-    distance_threshold=0.2,  # Point-to-plane distance
-    iterations=1000,         # Number of samples
-    min_points_for_plane=3   # Minimum for plane fitting
-)
-```
+## 👨‍💻 Author
 
-### Grid Parameters
+**Matheo LANCEA**  
+M1 University Project  
+February 2026
 
-```python
-OccupancyGrid3D(
-    min_bounds=np.array([0, 0, 0]),
-    max_bounds=np.array([100, 100, 10]),
-    cell_size=0.5  # Small = more detail but slower
-)
-```
+---
 
-### Pathfinding Parameters
+## 🔗 Quick Links
 
-```python
-AStarPathfinder(
-    diagonal_movement=True  # Allow 26-connected movement
-)
-```
+- **Start Here**: See [START_HERE.txt](START_HERE.txt)
+- **Generate PLY**: `python generate_ply.py --help`
+- **Run Tests**: `pytest -v`
+- **Quick Start**: `python main.py`
 
-## 📚 Module Reference
+---
 
-### Core Modules
-
-- `src/core/point_cloud_loader.py` - Factory for point clouds
-- `src/core/observer.py` - Observer pattern implementation
-- `src/core/segmentation_strategy.py` - Strategy interface
-
-### Level 1
-
-- `src/level1/ransac_segmentation.py` - RANSAC ground detection
-- `src/level1/dl_segmentation.py` - Neural network classification
-- `src/level1/teleportation_validator.py` - Teleport validation
-
-### Level 2
-
-- `src/level2/euclidean_clustering.py` - DBSCAN clustering
-- `src/level2/plane_detection.py` - Multi-plane detection
-- `src/level2/occupancy_grid_3d.py` - 3D grid representation
-- `src/level2/pathfinding_a_star.py` - A* algorithm
-- `src/level2/navigation_agent.py` - Navigation state management
-
-## 📖 Examples
-
-### Example 1: Complete Level 1 Pipeline
-
-```python
-from src.core.point_cloud_loader import PointCloudLoader
-from src.level1.ransac_segmentation import RANSACSegmentation
-from src.level1.teleportation_validator import TeleportationValidator
-
-# Load point cloud
-pc = PointCloudLoader.create_synthetic_scene()
-
-# Detect ground
-ransac = RANSACSegmentation()
-seg_result = ransac.segment(pc.points)
-ground_points = seg_result.get_ground_points(pc.points)
-
-# Find valid landing zones
-validator = TeleportationValidator()
-landing_zones = validator.get_valid_landing_zone(ground_points)
-
-print(f"Valid landing zones: {len(landing_zones)}")
-```
-
-### Example 2: Level 2 Navigation Pipeline
-
-```python
-from src.level2.occupancy_grid_3d import OccupancyGrid3D
-from src.level2.navigation_agent import NavigationAgent
-
-# Setup
-min_b, max_b = pc.get_bounds()
-grid = OccupancyGrid3D(min_b, max_b, cell_size=1.0)
-
-# Mark obstacles
-grid.mark_occupied(obstacle_points, radius=0.5)
-
-# Create agent
-agent = NavigationAgent(grid)
-agent.current_position = start_pos
-
-# Navigate
-success = agent.set_goal(goal_pos)
-if success:
-    remaining = agent.get_remaining_distance()
-    print(f"Distance to goal: {remaining:.2f}m")
-```
-
-## 🎨 Visualization (Future)
-
-Integration with visualization libraries:
-
-```python
-# Example visualization (requires additional dependencies)
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-
-# Plot point cloud
-ax.scatter(pc.points[:, 0], pc.points[:, 1], pc.points[:, 2], c='blue', s=1)
-
-# Plot path
-path = np.array(agent.current_path)
-ax.plot(path[:, 0], path[:, 1], path[:, 2], 'r-', linewidth=2, label='Path')
-
-plt.show()
-```
-
-## 🚀 Future Enhancements
-
-- [ ] Real-time point cloud streaming
-- [ ] GPU acceleration (CUDA kernels)
-- [ ] ROS integration for real robots
-- [ ] Mesh reconstruction from segments
-- [ ] Multi-agent coordination
-- [ ] Learning-based pathfinding
-- [ ] Haptic feedback simulation
-- [ ] Unity/Unreal plugins
-
-## 📝 Documentation Files
-
-- [ARCHITECTURE.md](docs/ARCHITECTURE.md) - Detailed design patterns and algorithms
-- [README.md](README.md) - This file
-- Inline code comments throughout
-
-## ✅ Testing Checklist
-
-- [x] Unit tests for all core components
-- [x] Integration tests for pipelines
-- [x] Edge case handling
-- [x] Performance benchmarking
-- [x] Memory leak testing
-- [x] Thread safety (where applicable)
-
-## 📦 Dependencies
-
-See `requirements.txt` for complete list:
-
-- numpy, scipy - Numerical computing
-- open3d - Point cloud processing
-- scikit-learn - Machine learning
-- torch, tensorflow - Deep learning
-- pytest - Testing
+**Last Updated:** February 17, 2026  
+**Version:** 2.0  
+**Status:** Active Development ✅
 
 
